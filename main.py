@@ -1,20 +1,33 @@
-from tkinter import *
-from tkinter import messagebox
-import mysql.connector as mCon
+from tkinter.ttk import *
+from tkinter import Toplevel,Tk,StringVar,messagebox
+import mysql.connector
 
-
+con = mysql.connector.connect(host='localhost', password="mastermind2901",user='root',charset='utf8')
 # Screens
 
+def SetupDB():
+    cur = con.cursor()
+    cur.execute("Create Database if not exists BloodbankDB;")
+    cur.execute("use BloodBankDB;")
+    cur.execute("Create Table if not exists Users(ID INT primary key Auto_Increment, PhoneNumber VarChar(10) Not Null,Name VarChar(30), Age INT, Gender VarChar(2));")
+    cur.execute("Create Table if not exists Donations(ID INT primary key Auto_Increment, UserID INT,BloodType Varchar(5), Date Date,Place VarChar(30));")
+    cur.execute("Create Table if not exists BloodReserve(ID INT primary key Auto_Increment, BloodType Varchar(5), BloodLevel Decimal(3,2));")
+    print("Database ready!")
+    
+def db_createUser(name, gender, age, phonenumber):
+    cur = con.cursor()
+    cur.execute("insert into Users(PhoneNumber,Name, Age, Gender) values('{}','{}',{},'{}');".format(phonenumber,name,age,gender))
+    con.commit()    
 
-def AdminMain():
-    scrUserMain = Tk("AdminMain")
+def AdminMain():    
+    scrUserMain = Toplevel()
     scrUserMain.title("Admin")
     scrUserMain.geometry("500x500")
     scrUserMain.mainloop()
 
 
 def AdminLogon():
-    scrAdminLogon = Tk("AdminLogon")
+    scrAdminLogon = Toplevel()
     scrAdminLogon.geometry("500x500")
     scrAdminLogon.title("Admin Sign In")
     txtPassword = Entry(scrAdminLogon)
@@ -38,14 +51,14 @@ def AdminLogon():
 
 
 def UserMain():
-    scrUserMain = Tk("UserMain")
+    scrUserMain = Toplevel()
     scrUserMain.title("User")
     scrUserMain.geometry("500x500")
     scrUserMain.mainloop()
 
 
 def UserSelectSignOption():
-    scrUserSelectSignOption = Tk("User")
+    scrUserSelectSignOption = Toplevel()
     scrUserSelectSignOption.title("Select sign in option")
     scrUserSelectSignOption.geometry("500x500")
     btn1 = Button(scrUserSelectSignOption, text="Sign In", command=UserSignIn)
@@ -57,7 +70,7 @@ def UserSelectSignOption():
 
 
 def UserSignIn():
-    scrUserSignIn = Tk("UserSignIn")
+    scrUserSignIn = Toplevel()
     scrUserSignIn.geometry("500x500")
     scrUserSignIn.title("Sign In")
     txtPhoneNumber = Entry(scrUserSignIn)
@@ -80,14 +93,12 @@ def UserSignIn():
 
 
 def UserSignUpOrCreate(ScreenTitle):
-    scrUserSignUpOrCreate = Tk("userSignUpOrCreate")
+    scrUserSignUpOrCreate = Toplevel()
     scrUserSignUpOrCreate.title(ScreenTitle)
     scrUserSignUpOrCreate.geometry("500x500")
-    selectedGender = StringVar()
-    rad1mGender = Radiobutton(
-        scrUserSignUpOrCreate, text='Male', value="M", variable=selectedGender)
-    rad2fGender = Radiobutton(
-        scrUserSignUpOrCreate, text='Female', value="F", variable=selectedGender)
+    selectedGender = StringVar()            
+    rad1mGender= Radiobutton(scrUserSignUpOrCreate, text ='Male' , variable= selectedGender , value='M')
+    rad2fGender= Radiobutton(scrUserSignUpOrCreate, text ='Female', variable= selectedGender , value='F')      
     txtName = Entry(scrUserSignUpOrCreate)
     txtPhoneno = Entry(scrUserSignUpOrCreate)
     txtAge = Entry(scrUserSignUpOrCreate)
@@ -108,8 +119,9 @@ def UserSignUpOrCreate(ScreenTitle):
 
     def clicked_Messagebox():
         age = txtAge.get()
+        name = txtName.get()
         phone = txtPhoneno.get()
-        print(phone.isnumeric())
+        gender = selectedGender.get()                
         if not age.isnumeric():
             messagebox.showwarning('Warning!', "Invalid Age!")
         elif int(age) < 18:
@@ -118,11 +130,13 @@ def UserSignUpOrCreate(ScreenTitle):
             messagebox.showwarning('Warning!', 'Name cannot be empty!')
         elif not (phone.isnumeric() and len(phone) == 10):
             messagebox.showwarning('Warning!', 'Invalid phone no!')
+        elif gender=="":
+            messagebox.showwarning('Warning!', 'Invalid phone no!')
         else:
             scrUserSignUpOrCreate.destroy()
+            db_createUser(name, gender, age,phone)
             UserMain()
-    btnSubmit = Button(scrUserSignUpOrCreate, text=ScreenTitle,
-                       command=clicked_Messagebox)
+    btnSubmit = Button(scrUserSignUpOrCreate, text=ScreenTitle,command=clicked_Messagebox)
     btnSubmit.grid(column=2, row=4)
 
     scrUserSignUpOrCreate.mainloop()
@@ -142,6 +156,7 @@ def Start():
 def app():
     print("Blood Donation Assistant")
     print("version 0.1")
+    SetupDB()
     Start()
 
 
