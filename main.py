@@ -71,13 +71,13 @@ def AdminLogon():
     scrAdminLogon.mainloop()
 
 
-def donationsTable(root, list):
+def donationsTable(root, list, startx, starty):
     cells = []
     for i in range(len(list)):
         for j in range(5):
             e = Entry(root, width=20, fg='blue',
                       font=('Arial', 16, 'bold'), state='disabled')
-            e.grid(row=i, column=j)
+            e.grid(row=startx+i, column=starty+j)
             e.insert(END, list[i][j])
             cells.append(e)
 
@@ -88,6 +88,7 @@ def UserMain(PhoneNumber):
     scrUserMain.geometry("500x500")
 
     userDto = db_getUser(PhoneNumber)
+    print(userDto)
     btn2 = Button(scrUserMain, text="Edit",
                   command=lambda: UserEdit(userDto))
     btn2.grid(column=1, row=1)
@@ -95,12 +96,16 @@ def UserMain(PhoneNumber):
 
 
 def UserEdit(userDto):
+
     scrUserEdit = Toplevel()
     scrUserEdit.title("User")
     scrUserEdit.geometry("500x500")
     txtName = Entry(scrUserEdit)
+    txtName.insert(0, str(userDto[0][2]))
     txtPhoneno = Entry(scrUserEdit)
+    txtPhoneno.insert(0, str(userDto[0][1]))
     txtAge = Entry(scrUserEdit)
+    txtAge.insert(0, str(userDto[0][3]))
 
     lblName = Label(scrUserEdit, text="Name")
     lblPhoneNo = Label(scrUserEdit, text="PhoneNo")
@@ -135,13 +140,14 @@ def UserSignIn():
     txtPhoneNumber = Entry(scrUserSignIn)
 
     def btnSubmitOnPress():
+        phone = txtPhoneNumber.get()
         if not txtPhoneNumber.get().isnumeric():
             messagebox.showwarning('Warning!', "Invalid Input!")
         elif len(db_getUser(txtPhoneNumber.get())) < 1:
             messagebox.showwarning('Warning!', "No user found!")
         else:
             scrUserSignIn.destroy()
-            UserMain(txtPhoneNumber.get())
+            UserMain(phone)
 
     btnSubmit = Button(scrUserSignIn, text="Sign In",
                        command=btnSubmitOnPress)
@@ -168,6 +174,7 @@ def UserSignUpOrCreate():
 
     # Blood group selector drop down
     bloodGroups = [
+        "Select blood group",
         "A+",
         "A-",
         "B+",
@@ -178,7 +185,7 @@ def UserSignUpOrCreate():
         "O-",
     ]
     selecteBloodGroup = StringVar()
-    selecteBloodGroup.set("O+")
+    selecteBloodGroup.set("None")
     dpwBloodGroup = OptionMenu(
         scrUserSignUpOrCreate, selecteBloodGroup, *bloodGroups)
 
@@ -218,9 +225,11 @@ def UserSignUpOrCreate():
             messagebox.showwarning('Warning!', 'Invalid phone no!')
         elif len(db_getUser(phone)) > 0:
             messagebox.showwarning('Warning!', "Phone number already used!")
+        elif selecteBloodGroup.get() == "None":
+            messagebox.showwarning('Warning!', "Phone number already used!")
         else:
             scrUserSignUpOrCreate.destroy()
-            db_createUser(name, gender, age, phone, selecteBloodGroup)
+            db_createUser(name, gender, age, phone, selecteBloodGroup.get())
             UserMain(phone)
     btnSubmit = Button(scrUserSignUpOrCreate,
                        text="Sign Up", command=clicked_Messagebox)
