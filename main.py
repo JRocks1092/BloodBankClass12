@@ -1,25 +1,46 @@
 from tkinter.ttk import *
-from tkinter import Toplevel,Tk,StringVar,messagebox
+from tkinter import Toplevel, StringVar, messagebox, Tk, END
 import mysql.connector
 
-con = mysql.connector.connect(host='localhost', password="mastermind2901",user='root',charset='utf8')
-# Screens
+con = mysql.connector.connect(
+    host='localhost', password="mastermind2901", user='root', charset='utf8')
+
+# DB
+
 
 def SetupDB():
     cur = con.cursor()
     cur.execute("Create Database if not exists BloodbankDB;")
     cur.execute("use BloodBankDB;")
-    cur.execute("Create Table if not exists Users(ID INT primary key Auto_Increment, PhoneNumber VarChar(10) Not Null,Name VarChar(30), Age INT, Gender VarChar(2));")
+    cur.execute("Create Table if not exists Users(ID INT primary key Auto_Increment, PhoneNumber VarChar(10) Not Null,Name VarChar(30), Age INT, Gender VarChar(2),BloodType Varchar(5));")
     cur.execute("Create Table if not exists Donations(ID INT primary key Auto_Increment, UserID INT,BloodType Varchar(5), Date Date,Place VarChar(30));")
     cur.execute("Create Table if not exists BloodReserve(ID INT primary key Auto_Increment, BloodType Varchar(5), BloodLevel Decimal(3,2));")
     print("Database ready!")
-    
-def db_createUser(name, gender, age, phonenumber):
-    cur = con.cursor()
-    cur.execute("insert into Users(PhoneNumber,Name, Age, Gender) values('{}','{}',{},'{}');".format(phonenumber,name,age,gender))
-    con.commit()    
 
-def AdminMain():    
+
+def db_createUser(name, gender, age, phonenumber, bloodtype):
+    cur = con.cursor()
+    cur.execute("insert into Users(PhoneNumber,Name, Age, Gender, BloodType) values('{}','{}',{},'{}','{}');".format(
+        phonenumber, name, age, gender, bloodtype))
+    con.commit()
+
+
+def db_getDonations(UserID):
+    cur = con.cursor()
+    cur.execute(
+        "select * from Donations where UserID={};".format(UserID))
+    return cur.fetchall()
+
+
+def db_getUser(phoneNumber):
+    cur = con.cursor()
+    cur.execute(
+        "select * from Users where PhoneNumber='{}';".format(phoneNumber))
+    return cur.fetchall()
+
+
+# Screens
+def AdminMain():
     scrUserMain = Toplevel()
     scrUserMain.title("Admin")
     scrUserMain.geometry("500x500")
@@ -50,11 +71,49 @@ def AdminLogon():
     scrAdminLogon.mainloop()
 
 
-def UserMain():
+def donationsTable(root, list):
+    cells = []
+    for i in range(len(list)):
+        for j in range(5):
+            e = Entry(root, width=20, fg='blue',
+                      font=('Arial', 16, 'bold'), state='disabled')
+            e.grid(row=i, column=j)
+            e.insert(END, list[i][j])
+            cells.append(e)
+
+
+def UserMain(PhoneNumber):
     scrUserMain = Toplevel()
     scrUserMain.title("User")
     scrUserMain.geometry("500x500")
+
+    userDto = db_getUser(PhoneNumber)
+    btn2 = Button(scrUserMain, text="Edit",
+                  command=lambda: UserEdit(userDto))
+    btn2.grid(column=1, row=1)
     scrUserMain.mainloop()
+
+
+def UserEdit(userDto):
+    scrUserEdit = Toplevel()
+    scrUserEdit.title("User")
+    scrUserEdit.geometry("500x500")
+    txtName = Entry(scrUserEdit)
+    txtPhoneno = Entry(scrUserEdit)
+    txtAge = Entry(scrUserEdit)
+
+    lblName = Label(scrUserEdit, text="Name")
+    lblPhoneNo = Label(scrUserEdit, text="PhoneNo")
+    lblAge = Label(scrUserEdit, text="Age")
+
+    lblName.grid(column=1, row=1)
+    lblPhoneNo.grid(column=1, row=2)
+    lblAge.grid(column=1, row=3)
+    txtName.grid(column=2, row=1)
+    txtPhoneno.grid(column=2, row=2)
+    txtAge.grid(column=2, row=3)
+
+    scrUserEdit.mainloop()
 
 
 def UserSelectSignOption():
@@ -63,7 +122,7 @@ def UserSelectSignOption():
     scrUserSelectSignOption.geometry("500x500")
     btn1 = Button(scrUserSelectSignOption, text="Sign In", command=UserSignIn)
     btn2 = Button(scrUserSelectSignOption, text="Sign Up",
-                  command=lambda: UserSignUpOrCreate("Sign Up"))
+                  command=UserSignUpOrCreate)
     btn1.grid(column=1, row=1)
     btn2.grid(column=2, row=1)
     scrUserSelectSignOption.mainloop()
@@ -76,11 +135,14 @@ def UserSignIn():
     txtPhoneNumber = Entry(scrUserSignIn)
 
     def btnSubmitOnPress():
-        if txtPhoneNumber.get().isnumeric():
-            scrUserSignIn.destroy()
-            UserMain()
-        else:
+        if not txtPhoneNumber.get().isnumeric():
             messagebox.showwarning('Warning!', "Invalid Input!")
+        elif len(db_getUser(txtPhoneNumber.get())) < 1:
+            messagebox.showwarning('Warning!', "No user found!")
+        else:
+            scrUserSignIn.destroy()
+            UserMain(txtPhoneNumber.get())
+
     btnSubmit = Button(scrUserSignIn, text="Sign In",
                        command=btnSubmitOnPress)
 
@@ -92,13 +154,34 @@ def UserSignIn():
     scrUserSignIn.mainloop()
 
 
-def UserSignUpOrCreate(ScreenTitle):
+def UserSignUpOrCreate():
     scrUserSignUpOrCreate = Toplevel()
-    scrUserSignUpOrCreate.title(ScreenTitle)
+    scrUserSignUpOrCreate.title("Sign Up")
     scrUserSignUpOrCreate.geometry("500x500")
-    selectedGender = StringVar()            
-    rad1mGender= Radiobutton(scrUserSignUpOrCreate, text ='Male' , variable= selectedGender , value='M')
-    rad2fGender= Radiobutton(scrUserSignUpOrCreate, text ='Female', variable= selectedGender , value='F')      
+
+    # Gender selector radio button
+    selectedGender = StringVar()
+    rad1mGender = Radiobutton(scrUserSignUpOrCreate,
+                              text='Male', variable=selectedGender, value='M')
+    rad2fGender = Radiobutton(
+        scrUserSignUpOrCreate, text='Female', variable=selectedGender, value='F')
+
+    # Blood group selector drop down
+    bloodGroups = [
+        "A+",
+        "A-",
+        "B+",
+        "B-",
+        "AB+",
+        "AB-",
+        "O+",
+        "O-",
+    ]
+    selecteBloodGroup = StringVar()
+    selecteBloodGroup.set("O+")
+    dpwBloodGroup = OptionMenu(
+        scrUserSignUpOrCreate, selecteBloodGroup, *bloodGroups)
+
     txtName = Entry(scrUserSignUpOrCreate)
     txtPhoneno = Entry(scrUserSignUpOrCreate)
     txtAge = Entry(scrUserSignUpOrCreate)
@@ -116,12 +199,13 @@ def UserSignUpOrCreate(ScreenTitle):
     txtName.grid(column=2, row=1)
     txtPhoneno.grid(column=2, row=2)
     txtAge.grid(column=2, row=3)
+    dpwBloodGroup.grid(column=3, row=4)
 
     def clicked_Messagebox():
         age = txtAge.get()
         name = txtName.get()
         phone = txtPhoneno.get()
-        gender = selectedGender.get()                
+        gender = selectedGender.get()
         if not age.isnumeric():
             messagebox.showwarning('Warning!', "Invalid Age!")
         elif int(age) < 18:
@@ -130,13 +214,16 @@ def UserSignUpOrCreate(ScreenTitle):
             messagebox.showwarning('Warning!', 'Name cannot be empty!')
         elif not (phone.isnumeric() and len(phone) == 10):
             messagebox.showwarning('Warning!', 'Invalid phone no!')
-        elif gender=="":
+        elif gender == "":
             messagebox.showwarning('Warning!', 'Invalid phone no!')
+        elif len(db_getUser(phone)) > 0:
+            messagebox.showwarning('Warning!', "Phone number already used!")
         else:
             scrUserSignUpOrCreate.destroy()
-            db_createUser(name, gender, age,phone)
-            UserMain()
-    btnSubmit = Button(scrUserSignUpOrCreate, text=ScreenTitle,command=clicked_Messagebox)
+            db_createUser(name, gender, age, phone, selecteBloodGroup)
+            UserMain(phone)
+    btnSubmit = Button(scrUserSignUpOrCreate,
+                       text="Sign Up", command=clicked_Messagebox)
     btnSubmit.grid(column=2, row=4)
 
     scrUserSignUpOrCreate.mainloop()
