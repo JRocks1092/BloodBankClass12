@@ -60,10 +60,8 @@ def db_getUser(phoneNumber):
 def db_createNewDonation(place, userDTO):
     datestr = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cur = con.cursor()
-    cur.execute("insert into Donations(UserID,BloodType,Date,Place) values({},'{}','{}','{}');".format(
+    cur.execute("insert into Users(UserID,BloodType,Date,Place) values({},'{}','{}','{}');".format(
         userDTO[0], userDTO[5], datestr, place))
-    cur.execute("update BloodReserve set BloodLevel=BloodLevel+1 where BloodType='{}';".format(
-        userDTO[5]))
     con.commit()
 
 
@@ -84,9 +82,8 @@ def isUserAbleToDonate(userID):
     dateNowStr = datetime.now()
     userDonations = db_getDonations(userID)
     if len(userDonations) > 0:
-        print(type(db_getDonations(userID)[0][3]))
-        # dateOfLastDonation = datetime.strptime(
-        # db_getDonations(userID)[0][3], '%Y-%m-%d %H:%M:%S')
+        dateOfLastDonation = datetime.strptime(
+            db_getDonations(userID)[0][3], '%Y-%m-%d %H:%M:%S')
         if (dateNowStr - dateOfLastDonation).days < 90:
             return True
         else:
@@ -145,13 +142,16 @@ def AdminMain():
     scrAdminMain = Toplevel()
     scrAdminMain.title("Admin")
     scrAdminMain.geometry("500x500")
-    btnAddNewDonation = Button(scrAdminMain, text="Add Donation",
-                               command=NewDonation)
-    btnAddNewDonation.grid(column=9, row=0)
 
-    btnShowDonationsTable = Button(scrAdminMain, text="All Donations",
-                                   command=DonationsTableScreen)
-    btnShowDonationsTable.grid(column=9, row=1)
+    donations = db_getDonations()
+    DataTableRows = Table(scrAdminMain, donations, 2, 4)
+
+    def btnAddNewDonationOnPress():
+        NewDonation()
+
+    btnAddNewDonation = Button(scrAdminMain, text="Add Donation",
+                               command=btnAddNewDonationOnPress)
+    btnAddNewDonation.grid(column=2, row=2)
 
     createBloodLevelBars(scrAdminMain, 0, 0)
 
@@ -182,35 +182,18 @@ def AdminLogon():
     scrAdminLogon.mainloop()
 
 
-def Table(master, headers, dataRows):
+def Table(root, dataRows, startx, starty):
     rows = []
-    headerLabels = []
-    for i in range(5):
-        e = Label(master, width=6, text=headers[i],
-                  font=('Arial', 12, 'bold'))
-        e.grid(row=1, column=i)
-        headerLabels.append(e)
-    rows.append(headerLabels)
     for i in range(len(dataRows)):
         cells = []
         for j in range(5):
-            e = Entry(master, width=6,
-                      font=('Arial', 16, 'bold'))
-            e.grid(row=i+2, column=j)
+            e = Entry(root, width=20, fg='blue',
+                      font=('Arial', 16, 'bold'), state='disabled')
+            e.grid(row=startx+i, column=starty+j)
             e.insert(END, dataRows[i][j])
             cells.append(e)
         rows.append(cells)
     return rows
-
-
-def DonationsTableScreen():
-    scrDonationsTableScreen = Toplevel()
-    scrDonationsTableScreen.title("DonationsTableScreen")
-    scrDonationsTableScreen.geometry("500x500")
-    donations = db_getDonations()
-    DataTableRows = Table(
-        scrDonationsTableScreen, ["ID", "UserID", "Blood Group", "Date", "Place"], donations, 2, 4)
-    scrDonationsTableScreen.mainloop()
 
 
 def UserMain(userDto):
@@ -400,8 +383,7 @@ def Start():
     style = Style(scrStart)
     style.theme_use("xpnative")
     style.configure("Red.Vertical.TProgressbar", background='red')
-    btnUser = Button(scrStart, text="User",
-                     command=UserSelectSignOption)
+    btnUser = Button(scrStart, text="User", command=UserSelectSignOption)
     btnAdmin = Button(scrStart, text="Admin", command=AdminLogon)
     btnUser.grid(column=1, row=1)
     btnAdmin.grid(column=2, row=1)

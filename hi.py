@@ -1,5 +1,5 @@
 from tkinter import *
-
+import tkinter as tk
 from tkinter.ttk import Progressbar
 
 from tkinter import ttk
