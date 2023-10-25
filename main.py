@@ -1,12 +1,27 @@
 from tkinter.ttk import *
+from tkinter import *
 from tkinter import Toplevel, StringVar, messagebox, Tk, END
 import mysql.connector
 from datetime import datetime
+
 
 con = mysql.connector.connect(
     host='localhost', password="mastermind2901", user='root', charset='utf8')
 
 # DB
+
+
+def setBloodReserveTable():
+    cur = con.cursor()
+    allGroups = ["A+",   "A-",        "B+",        "B-",
+                 "AB+",        "AB-",        "O+",        "O-",]
+    for i in allGroups:
+        cur.execute(
+            "select BloodType from BloodReserve where BloodType='{}'".format(i))
+        if len(cur.fetchall()) < 1:
+            cur.execute(
+                "insert into BloodReserve(BloodType,BloodLevel) values ('{}',0);".format(i))
+    con.commit()
 
 
 def SetupDB():
@@ -16,6 +31,7 @@ def SetupDB():
     cur.execute("Create Table if not exists Users(ID INT primary key Auto_Increment, PhoneNumber VarChar(10) Not Null,Name VarChar(30), Age INT, Gender VarChar(2),BloodType Varchar(5));")
     cur.execute("Create Table if not exists Donations(ID INT primary key Auto_Increment, UserID INT,BloodType Varchar(5), Date Date,Place VarChar(30));")
     cur.execute("Create Table if not exists BloodReserve(ID INT primary key Auto_Increment, BloodType Varchar(5), BloodLevel Decimal(3,2));")
+    setBloodReserveTable()
     print("Database ready!")
 
 
@@ -36,9 +52,9 @@ def db_updateUser(userid, name, age, phonenumber):
 
 def db_getDonations(UserID=0):
     cur = con.cursor()
-    qry = "select * from Donations"
+    qry = "select d.ID,u.Name,u.PhoneNumber,u.Age,u.Gender,d.BloodType,d.Date,d.Place from Donations d,Users u where d.UserID = u.ID"
     if UserID != 0:
-        qry += " where UserID={}".format(UserID)
+        qry += " and UserID={}".format(UserID)
     qry += " order by Date desc;"
     cur.execute(qry)
     return cur.fetchall()
@@ -145,24 +161,22 @@ def AdminMain():
     scrAdminMain = Toplevel()
     scrAdminMain.title("Admin")
     scrAdminMain.geometry("500x500")
+
     btnAddNewDonation = Button(scrAdminMain, text="Add Donation",
                                command=NewDonation)
     btnAddNewDonation.grid(column=9, row=0)
-
     btnShowDonationsTable = Button(scrAdminMain, text="All Donations",
                                    command=DonationsTableScreen)
     btnShowDonationsTable.grid(column=9, row=1)
-
     createBloodLevelBars(scrAdminMain, 0, 0)
-
     scrAdminMain.mainloop()
 
 
 def AdminLogon():
     scrAdminLogon = Toplevel()
-    scrAdminLogon.geometry("500x500")
+    scrAdminLogon.geometry("570x505")
     scrAdminLogon.title("Admin Sign In")
-    txtPassword = Entry(scrAdminLogon)
+    txtPassword = Entry(scrAdminLogon, bd=4, bg="Red")
     password1 = "bloodbank1"
 
     def btnSubmitOnPress():
@@ -171,45 +185,45 @@ def AdminLogon():
             AdminMain()
         else:
             messagebox.showwarning('Warning!', "Invalid Password!")
-    btnSubmit = Button(scrAdminLogon, text="Sign In",
-                       command=btnSubmitOnPress)
-
-    lblPassword = Label(scrAdminLogon, text="Password")
-    lblPassword.grid(column=1, row=1)
-    txtPassword.grid(column=2, row=1)
-    btnSubmit.grid(column=2, row=2)
+    photoAdmin = PhotoImage(
+        file=r"./Screenshot 2023-10-24 231427.png")
+    btnSubmit = Button(scrAdminLogon, text="SIGN IN", width=20, height=5,
+                       command=btnSubmitOnPress, font='Helvetica')
+    btnImage = Button(scrAdminLogon, image=photoAdmin, bd=0, bg='Black')
+    btnDummy1 = Button(scrAdminLogon, bd=0, bg="Red", width=20, height=5)
+    btnDummy2 = Button(scrAdminLogon, bd=0, bg="Green", width=20, height=5)
+    btnDummy3 = Button(scrAdminLogon, bd=0, bg="Cyan", width=20, height=5)
+    lblPassword = Label(scrAdminLogon, text="PASSWORD!",
+                        font=('Helvetica', 10))
+    lblPassword.grid(column=0, row=1)
+    txtPassword.grid(column=0, row=0)
+    # btnDummy1.grid(column=0,row=0)
+    # btnDummy2.grid(column=0,row=2)
+    # btnDummy3.grid(column=1,row=0)
+    btnSubmit.grid(column=0, row=3)
+    btnImage.grid(column=0, row=4)
 
     scrAdminLogon.mainloop()
 
 
 def Table(master, headers, dataRows):
-    rows = []
-    headerLabels = []
-    for i in range(5):
-        e = Label(master, width=6, text=headers[i],
-                  font=('Arial', 12, 'bold'))
-        e.grid(row=1, column=i)
-        headerLabels.append(e)
-    rows.append(headerLabels)
-    for i in range(len(dataRows)):
-        cells = []
-        for j in range(5):
-            e = Entry(master, width=6,
-                      font=('Arial', 16, 'bold'))
-            e.grid(row=i+2, column=j)
-            e.insert(END, dataRows[i][j])
-            cells.append(e)
-        rows.append(cells)
-    return rows
+    dataRows = [headers]+dataRows
+    print(dataRows)
+    for x in range(len(dataRows)):
+        for y in range(len(headers)):
+            e = Entry(master, width=15, fg='blue', font=(
+                'Timew New Roman', 13, 'italic'))
+            e.grid(row=x, column=y)
+            e.insert(END, dataRows[x][y])
 
 
 def DonationsTableScreen():
     scrDonationsTableScreen = Toplevel()
     scrDonationsTableScreen.title("DonationsTableScreen")
-    scrDonationsTableScreen.geometry("500x500")
+    scrDonationsTableScreen.geometry("700x500")
     donations = db_getDonations()
     DataTableRows = Table(
-        scrDonationsTableScreen, ["ID", "UserID", "Blood Group", "Date", "Place"], donations, 2, 4)
+        scrDonationsTableScreen, ("ID", "Name", "Phone Number", "Age", "Gender", "BloodType", "Date", "Place"), donations)
     scrDonationsTableScreen.mainloop()
 
 
@@ -278,12 +292,22 @@ def UserEdit(userDto):
 def UserSelectSignOption():
     scrUserSelectSignOption = Toplevel()
     scrUserSelectSignOption.title("Select sign in option")
-    scrUserSelectSignOption.geometry("500x500")
-    btn1 = Button(scrUserSelectSignOption, text="Sign In", command=UserSignIn)
-    btn2 = Button(scrUserSelectSignOption, text="Sign Up",
+    scrUserSelectSignOption.geometry("500x550")
+    photo2 = PhotoImage(
+        file=r"./Screenshot 2023-10-19 212917.png")
+    btn1 = Button(scrUserSelectSignOption, width=55, height=5,
+                  text="SIGN IN", font='Helvetica', command=UserSignIn)
+    btn2 = Button(scrUserSelectSignOption, width=55, height=5, text="SIGN UP", font='Helvetica',
                   command=UserSignUpOrCreate)
-    btn1.grid(column=1, row=1)
+    btnImageSign = Button(scrUserSelectSignOption,
+                          image=photo2, bd=0, bg='Black')
+
+    labelSign = Label(scrUserSelectSignOption,
+                      text="SELECT SIGN OPTION!", font='Helvetica')
+    labelSign.grid(column=2, row=3)
+    btn1.grid(column=2, row=0)
     btn2.grid(column=2, row=1)
+    btnImageSign.grid(column=2, row=5)
     scrUserSelectSignOption.mainloop()
 
 
@@ -396,15 +420,24 @@ def UserSignUpOrCreate():
 def Start():
     scrStart = Tk("Blood Donation Assistant")
     scrStart.title("Blood Donation Assistant")
-    scrStart.geometry("500x500")
+    scrStart.geometry("500x550")
     style = Style(scrStart)
-    style.theme_use("xpnative")
+    # style.theme_use("xpnative")
     style.configure("Red.Vertical.TProgressbar", background='red')
-    btnUser = Button(scrStart, text="User",
-                     command=UserSelectSignOption)
-    btnAdmin = Button(scrStart, text="Admin", command=AdminLogon)
-    btnUser.grid(column=1, row=1)
+    photo1 = PhotoImage(
+        file=r"./Screenshot 2023-10-19 212746.png")
+    labelWelcome = Label(
+        scrStart, text="WELCOME TO BLOODBANK!", font='Helvetica')
+    btnUser = Button(scrStart, text="USER", width=55, height=5,
+                     font='Helvetica', activebackground='Red', command=UserSelectSignOption)
+    btnAdmin = Button(scrStart, text="ADMIN", width=55, height=5,
+                      font='Helvetica', activebackground='Red', command=AdminLogon)
+    btnImage = Button(scrStart, image=photo1, bd=0, bg='Black')
+
+    btnUser.grid(column=2, row=0)
     btnAdmin.grid(column=2, row=1)
+    labelWelcome.grid(column=2, row=3)
+    btnImage.grid(column=2, row=5)
     scrStart.mainloop()
 
 
