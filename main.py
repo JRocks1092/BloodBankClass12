@@ -100,10 +100,7 @@ def isUserAbleToDonate(userID):
     dateNowStr = datetime.now()
     userDonations = db_getDonations(userID)
     if len(userDonations) > 0:
-        print(type(db_getDonations(userID)[0][3]))
-        # dateOfLastDonation = datetime.strptime(
-        # db_getDonations(userID)[0][3], '%Y-%m-%d %H:%M:%S')
-        if (dateNowStr - dateOfLastDonation).days < 90:
+        if (dateNowStr - db_getDonations(userID)[0][6]).days > 90:
             return True
         else:
             return False
@@ -217,11 +214,11 @@ def Table(master, headers, dataRows):
             e.insert(END, dataRows[x][y])
 
 
-def DonationsTableScreen():
+def DonationsTableScreen(UserID=0):
     scrDonationsTableScreen = Toplevel()
     scrDonationsTableScreen.title("DonationsTableScreen")
-    scrDonationsTableScreen.geometry("700x500")
-    donations = db_getDonations()
+    scrDonationsTableScreen.geometry("900x500")
+    donations = db_getDonations(UserID)
     DataTableRows = Table(
         scrDonationsTableScreen, ("ID", "Name", "Phone Number", "Age", "Gender", "BloodType", "Date", "Place"), donations)
     scrDonationsTableScreen.mainloop()
@@ -231,17 +228,41 @@ def UserMain(userDto):
     scrUserMain = Toplevel()
     scrUserMain.title("User")
     scrUserMain.geometry("500x500")
-    donations = db_getDonations(userDto[0])
-    DataTableRows = Table(scrUserMain, donations, 2, 4)
 
-    btn2 = Button(scrUserMain, text="Edit",
+    lblNameLabel = Label(scrUserMain, text="Name")
+    lblPhoneNoLabel = Label(scrUserMain, text="PhoneNo")
+    lblAgeLabel = Label(scrUserMain, text="Age")
+    lblGenderLabel = Label(scrUserMain, text="Gender")
+    lblBloodGroupLabel = Label(scrUserMain, text="BloodGroup")
+
+    lblName = Label(scrUserMain, text=userDto[2])
+    lblPhoneNo = Label(scrUserMain, text=userDto[1])
+    lblAge = Label(scrUserMain, text=userDto[3])
+    lblGender = Label(scrUserMain, text=userDto[4])
+    lblBloodGroup = Label(scrUserMain, text=userDto[5])
+
+    lblNameLabel.grid(column=1, row=1)
+    lblPhoneNoLabel.grid(column=1, row=2)
+    lblAgeLabel.grid(column=1, row=3)
+    lblGenderLabel.grid(column=1, row=4)
+    lblBloodGroupLabel.grid(column=1, row=5)
+
+    lblName.grid(column=2, row=1)
+    lblPhoneNo.grid(column=2, row=2)
+    lblAge.grid(column=2, row=3)
+    lblGender.grid(column=2, row=4)
+    lblBloodGroup.grid(column=2, row=5)
+
+    btn2 = Button(scrUserMain, text="Edit Profile",
                   command=lambda: UserEdit(userDto))
-    btn2.grid(column=1, row=1)
+    btn2.grid(column=1, row=6)
+    btnShowDonationsTable = Button(scrUserMain, text="Show History",
+                                   command=lambda: DonationsTableScreen(userDto[0]))
+    btnShowDonationsTable.grid(column=2, row=6)
     scrUserMain.mainloop()
 
 
 def UserEdit(userDto):
-
     scrUserEdit = Toplevel()
     scrUserEdit.title("User")
     scrUserEdit.geometry("500x500")
@@ -409,7 +430,8 @@ def UserSignUpOrCreate():
         else:
             scrUserSignUpOrCreate.destroy()
             db_createUser(name, gender, age, phone, selecteBloodGroup.get())
-            UserMain(phone)
+            user = db_getUser(phone)
+            UserMain(user)
     btnSubmit = Button(scrUserSignUpOrCreate,
                        text="Sign Up", command=clicked_btnsubmit)
     btnSubmit.grid(column=2, row=4)
