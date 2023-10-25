@@ -13,8 +13,7 @@ con = mysql.connector.connect(
 
 def setBloodReserveTable():
     cur = con.cursor()
-    allGroups = ["A+",   "A-",        "B+",        "B-",
-                 "AB+",        "AB-",        "O+",        "O-",]
+    allGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-",]
     for i in allGroups:
         cur.execute(
             "select BloodType from BloodReserve where BloodType='{}'".format(i))
